@@ -65,9 +65,9 @@
             background-color: #d3f896;
             color: #000000;
             border: none;
-            border-radius: 5px;
             font-family: 'Ppgoshasans', Arial, sans-serif;
             cursor: pointer;
+            transition: clip-path 0.3s ease;
         }
 
         #mobileControls button:active {
@@ -469,6 +469,7 @@
                 ctx.textAlign = 'left';
 
                 updateCustomCursor();
+                updateMobileButtonStyles(); // Add this line
 
                 if (is3DEnabled) {
                     update3DEffect();
@@ -515,6 +516,16 @@
                 
                 recutButton.addEventListener('click', () => drawPoster(true));
                 downloadButton.addEventListener('click', downloadPoster);
+                
+                // Apply initial dynamic style
+                applyDynamicButtonStyle(recutButton);
+                applyDynamicButtonStyle(downloadButton);
+                
+                // Set up interval to update button styles
+                setInterval(() => {
+                    applyDynamicButtonStyle(recutButton);
+                    applyDynamicButtonStyle(downloadButton);
+                }, 3000); // Update every 3 seconds
                 
                 // Keep the touch event listener for the canvas
                 canvas.addEventListener('touchend', handleMobileCanvasClick);
@@ -581,6 +592,25 @@
                 }
                 initialAnimation();
             });
+
+            function applyDynamicButtonStyle(button) {
+                const clipPath = `polygon(
+                    ${getRandomDistortion()}% ${getRandomDistortion()}%, 
+                    ${100 + getRandomDistortion()}% ${getRandomDistortion()}%, 
+                    ${100 + getRandomDistortion()}% ${100 + getRandomDistortion()}%, 
+                    ${getRandomDistortion()}% ${100 + getRandomDistortion()}%
+                )`;
+                button.style.clipPath = clipPath;
+            }
+
+            function updateMobileButtonStyles() {
+                if (isMobileDevice()) {
+                    const recutButton = document.getElementById('recutButton');
+                    const downloadButton = document.getElementById('downloadButton');
+                    applyDynamicButtonStyle(recutButton);
+                    applyDynamicButtonStyle(downloadButton);
+                }
+            }
         })();
     </script>
 </body>
