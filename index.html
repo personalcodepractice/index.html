@@ -74,6 +74,31 @@
         #mobileControls button:active {
             background-color: #b3d876;
         }
+
+        @media (max-width: 768px) {
+            #posterCanvas {
+                touch-action: pan-y;
+                user-select: none;
+                -webkit-user-select: none;
+            }
+
+            #mobileControls {
+                position: fixed;
+                bottom: 20px;
+                left: 0;
+                right: 0;
+                display: flex;
+                justify-content: space-around;
+                padding: 10px;
+                background-color: rgba(255, 255, 255, 0.8);
+                z-index: 1000;
+            }
+
+            #mobileControls button {
+                padding: 15px 30px;
+                font-size: 18px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -527,35 +552,6 @@
                     applyDynamicButtonStyle(recutButton);
                     applyDynamicButtonStyle(downloadButton);
                 }, 3000); // Update every 3 seconds
-                
-                // Remove this line:
-                // canvas.addEventListener('touchend', handleMobileCanvasClick);
-
-                // Add this line instead:
-                canvas.addEventListener('click', handleMobileCanvasClick);
-            }
-
-            let lastTapTime = 0;
-            const tapDelay = 300; // milliseconds
-
-            function handleMobileCanvasClick(event) {
-                const currentTime = new Date().getTime();
-                const tapLength = currentTime - lastTapTime;
-                
-                if (tapLength < tapDelay && tapLength > 0) {
-                    event.preventDefault();
-                    
-                    // Check if the click/tap is within the canvas bounds
-                    const rect = canvas.getBoundingClientRect();
-                    const x = event.clientX - rect.left;
-                    const y = event.clientY - rect.top;
-                    
-                    if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
-                        drawPoster(true);
-                    }
-                }
-                
-                lastTapTime = currentTime;
             }
 
             function setupDesktopVersion() {
