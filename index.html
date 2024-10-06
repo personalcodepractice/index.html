@@ -82,14 +82,60 @@
             const canvasWidth = 4960;
             const canvasHeight = 7016;
 
-            canvas.width = canvasWidth;
-            canvas.height = canvasHeight;
+            let scaleFactor = 1;
 
-            // Scale canvas for display
-            const maxHeight = 700;
-            const scale = Math.min(maxHeight / canvasHeight, 1);
-            canvas.style.width = `${canvasWidth * scale}px`;
-            canvas.style.height = `${canvasHeight * scale}px`;
+            function isMobileDevice() {
+                return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+                    || (window.innerWidth <= 768);
+            }
+
+            function setupCanvas() {
+                const containerWidth = canvas.parentElement.clientWidth;
+                const containerHeight = canvas.parentElement.clientHeight;
+                const aspectRatio = canvasHeight / canvasWidth;
+
+                let newWidth, newHeight;
+
+                if (isMobileDevice()) {
+                    newWidth = containerWidth;
+                    newHeight = newWidth * aspectRatio;
+
+                    if (newHeight > containerHeight) {
+                        newHeight = containerHeight;
+                        newWidth = newHeight / aspectRatio;
+                    }
+
+                    // Limit canvas size for mobile devices
+                    const maxDimension = 4096;
+                    if (newWidth > maxDimension || newHeight > maxDimension) {
+                        if (newWidth > newHeight) {
+                            newWidth = maxDimension;
+                            newHeight = newWidth * aspectRatio;
+                        } else {
+                            newHeight = maxDimension;
+                            newWidth = newHeight / aspectRatio;
+                        }
+                    }
+                } else {
+                    // For desktop, maintain original size
+                    newWidth = canvasWidth;
+                    newHeight = canvasHeight;
+                }
+
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+
+                // Scale for display
+                const scale = Math.min(containerWidth / newWidth, containerHeight / newHeight, 1);
+                canvas.style.width = `${newWidth * scale}px`;
+                canvas.style.height = `${newHeight * scale}px`;
+
+                // Adjust the scale factor for drawing
+                scaleFactor = newWidth / canvasWidth;
+
+                // Redraw the poster with the new dimensions
+                drawPoster(false);
+            }
 
             function getRandomDistortion() {
                 return Math.random() * 10 - 5; // Random value between -5 and 5
@@ -243,40 +289,6 @@
                 return { background, rect1, rect2 };
             }
 
-            function drawIndentedRectangle(ctx, startX, startY, width, height, maxIndent, isTopIndented) {
-                ctx.beginPath();
-                ctx.moveTo(startX, startY);
-
-                if (isTopIndented) {
-                    // Top indented edge
-                    const numPoints = Math.floor(Math.random() * 3) + 2; // 2 to 4 points
-                    for (let i = 1; i <= numPoints; i++) {
-                        const x = startX + (width / numPoints) * i;
-                        const y = startY + (Math.random() * 2 - 1) * maxIndent;
-                        ctx.lineTo(x, y);
-                    }
-                } else {
-                    ctx.lineTo(startX + width, startY);
-                }
-
-                ctx.lineTo(startX + width, startY + height);
-
-                if (!isTopIndented) {
-                    // Bottom indented edge
-                    const numPoints = Math.floor(Math.random() * 3) + 2; // 2 to 4 points
-                    for (let i = numPoints - 1; i >= 0; i--) {
-                        const x = startX + (width / numPoints) * i;
-                        const y = startY + height + (Math.random() * 2 - 1) * maxIndent;
-                        ctx.lineTo(x, y);
-                    }
-                } else {
-                    ctx.lineTo(startX, startY + height);
-                }
-
-                ctx.closePath();
-                ctx.fill();
-            }
-
             let currentColors = {};
             let previousBackgroundColor = '#000000';
             let currentRect1Height, currentRect2Height;
@@ -308,13 +320,6 @@
             const maxRotation = 5;
             let lastUpdateTime = 0;
             const updateInterval = 100;
-
-            function isMobileDevice() {
-                return (window.innerWidth <= 768) || 
-                       ('ontouchstart' in window) || 
-                       (navigator.maxTouchPoints > 0) || 
-                       (navigator.msMaxTouchPoints > 0);
-            }
 
             function update3DEffect() {
                 if (!is3DEnabled) {
@@ -366,6 +371,40 @@
                 }
             }
 
+            function drawIndentedRectangle(ctx, startX, startY, width, height, maxIndent, isTopIndented) {
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+
+                if (isTopIndented) {
+                    // Top indented edge
+                    const numPoints = Math.floor(Math.random() * 3) + 2; // 2 to 4 points
+                    for (let i = 1; i <= numPoints; i++) {
+                        const x = startX + (width / numPoints) * i;
+                        const y = startY + (Math.random() * 2 - 1) * maxIndent;
+                        ctx.lineTo(x, y);
+                    }
+                } else {
+                    ctx.lineTo(startX + width, startY);
+                }
+
+                ctx.lineTo(startX + width, startY + height);
+
+                if (!isTopIndented) {
+                    // Bottom indented edge
+                    const numPoints = Math.floor(Math.random() * 3) + 2; // 2 to 4 points
+                    for (let i = numPoints - 1; i >= 0; i--) {
+                        const x = startX + (width / numPoints) * i;
+                        const y = startY + height + (Math.random() * 2 - 1) * maxIndent;
+                        ctx.lineTo(x, y);
+                    }
+                } else {
+                    ctx.lineTo(startX, startY + height);
+                }
+
+                ctx.closePath();
+                ctx.fill();
+            }
+
             function drawPoster(newHeights = true) {
                 if (newHeights) {
                     previousBackgroundColor = currentColors.background || previousBackgroundColor;
@@ -391,28 +430,28 @@
                 }
 
                 ctx.fillStyle = currentColors.background;
-                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                 const horizontalMargin = (canvasWidth - rectWidth) / 2;
-                const startY = horizontalMargin;
-                const startX = horizontalMargin;
-                const maxIndent = 37.5;
+                const startY = horizontalMargin * scaleFactor;
+                const startX = horizontalMargin * scaleFactor;
+                const maxIndent = 37.5 * scaleFactor;
 
                 ctx.fillStyle = currentColors.rect1;
-                drawIndentedRectangle(ctx, startX, startY, rectWidth, currentRect1Height, maxIndent, false);
+                drawIndentedRectangle(ctx, startX, startY, rectWidth * scaleFactor, currentRect1Height * scaleFactor, maxIndent, false);
 
                 ctx.fillStyle = currentColors.rect2;
-                drawIndentedRectangle(ctx, startX, startY + currentRect1Height + spaceBetween, rectWidth, currentRect2Height, maxIndent, true);
+                drawIndentedRectangle(ctx, startX, startY + currentRect1Height * scaleFactor + spaceBetween * scaleFactor, rectWidth * scaleFactor, currentRect2Height * scaleFactor, maxIndent, true);
 
                 ctx.fillStyle = currentColors.rect1;
-                const fontSize = 12 * (300 / 72);
+                const fontSize = 12 * (300 / 72) * scaleFactor;
                 ctx.font = `${fontSize}px Ppgoshasans`;
                 ctx.textBaseline = 'top';
-                const textY = startY + currentRect1Height + spaceBetween + currentRect2Height + 70;
+                const textY = startY + (currentRect1Height + spaceBetween + currentRect2Height) * scaleFactor + 70 * scaleFactor;
                 ctx.fillText('Recut', startX, textY);
 
                 ctx.textAlign = 'right';
-                ctx.fillText('made by personalpractice.studio', startX + rectWidth, textY);
+                ctx.fillText('made by personalpractice.studio', startX + rectWidth * scaleFactor, textY);
 
                 ctx.textAlign = 'left';
 
@@ -425,6 +464,8 @@
                 }
 
                 console.log('Poster drawn. Canvas visibility:', getComputedStyle(canvas).visibility);
+                console.log('Canvas dimensions:', canvas.width, canvas.height);
+                console.log('Canvas style dimensions:', canvas.style.width, canvas.style.height);
             }
 
             function initialAnimation() {
@@ -442,10 +483,16 @@
             }
 
             function downloadPoster() {
-                const link = document.createElement('a');
-                link.download = 'generative_poster.jpg';
-                link.href = canvas.toDataURL('image/jpeg');
-                link.click();
+                if (isMobileDevice()) {
+                    // For mobile devices, open the image in a new tab
+                    window.open(canvas.toDataURL('image/jpeg'), '_blank');
+                } else {
+                    // For desktop, keep the current download method
+                    const link = document.createElement('a');
+                    link.download = 'generative_poster.jpg';
+                    link.href = canvas.toDataURL('image/jpeg');
+                    link.click();
+                }
             }
 
             function setupMobileVersion() {
@@ -453,7 +500,23 @@
                 canvas.style.transform = 'none';
                 customCursor.style.display = 'none';
                 downloadButton.style.display = 'block';
+                downloadButton.textContent = 'View Poster';
                 downloadButton.addEventListener('click', downloadPoster);
+                
+                canvas.addEventListener('touchend', handleMobileCanvasClick);
+            }
+
+            function handleMobileCanvasClick(event) {
+                event.preventDefault();
+                const touch = event.changedTouches[0];
+                const rect = canvas.getBoundingClientRect();
+                const y = touch.clientY - rect.top;
+                
+                if (y < rect.height / 2) {
+                    drawPoster(true);
+                } else {
+                    downloadPoster();
+                }
             }
 
             function setupDesktopVersion() {
@@ -491,14 +554,26 @@
                 document.addEventListener('mousemove', handleMouseMove);
             }
 
+            window.addEventListener('resize', setupCanvas);
+
             document.fonts.load(`${12 * (300 / 72)}px Ppgoshasans`).then(() => {
+                setupCanvas();
                 if (isMobileDevice()) {
                     setupMobileVersion();
                 } else {
                     setupDesktopVersion();
                 }
                 initialAnimation();
-                update3DEffect();
+            }).catch(error => {
+                console.error('Font loading failed:', error);
+                // Fallback to default font and continue initialization
+                setupCanvas();
+                if (isMobileDevice()) {
+                    setupMobileVersion();
+                } else {
+                    setupDesktopVersion();
+                }
+                initialAnimation();
             });
         })();
     </script>
