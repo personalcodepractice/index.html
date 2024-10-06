@@ -52,16 +52,26 @@
             transition: background-color 0.3s ease, clip-path 0.3s ease;
         }
 
-        #downloadButton {
+        #mobileControls {
             display: none;
+            justify-content: space-around;
+            width: 100%;
             margin-top: 20px;
+        }
+
+        #mobileControls button {
             padding: 10px 20px;
-            background-color: #4CAF50;
-            color: white;
+            font-size: 16px;
+            background-color: #d3f896;
+            color: #000000;
             border: none;
             border-radius: 5px;
-            cursor: pointer;
             font-family: 'Ppgoshasans', Arial, sans-serif;
+            cursor: pointer;
+        }
+
+        #mobileControls button:active {
+            background-color: #b3d876;
         }
     </style>
 </head>
@@ -69,7 +79,10 @@
     <div id="poster-generator">
         <canvas id="posterCanvas"></canvas>
         <div id="customCursor"></div>
-        <button id="downloadButton">Download Poster</button>
+        <div id="mobileControls" style="display: none;">
+            <button id="recutButton">Recut</button>
+            <button id="downloadButton">Download</button>
+        </div>
     </div>
     <script>
         (function() {
@@ -483,40 +496,33 @@
             }
 
             function downloadPoster() {
-                if (isMobileDevice()) {
-                    // For mobile devices, open the image in a new tab
-                    window.open(canvas.toDataURL('image/jpeg'), '_blank');
-                } else {
-                    // For desktop, keep the current download method
-                    const link = document.createElement('a');
-                    link.download = 'generative_poster.jpg';
-                    link.href = canvas.toDataURL('image/jpeg');
-                    link.click();
-                }
+                const link = document.createElement('a');
+                link.download = 'generative_poster.jpg';
+                link.href = canvas.toDataURL('image/jpeg');
+                link.click();
             }
 
             function setupMobileVersion() {
                 is3DEnabled = false;
                 canvas.style.transform = 'none';
                 customCursor.style.display = 'none';
-                downloadButton.style.display = 'block';
-                downloadButton.textContent = 'View Poster';
+                
+                const mobileControls = document.getElementById('mobileControls');
+                mobileControls.style.display = 'flex';
+                
+                const recutButton = document.getElementById('recutButton');
+                const downloadButton = document.getElementById('downloadButton');
+                
+                recutButton.addEventListener('click', () => drawPoster(true));
                 downloadButton.addEventListener('click', downloadPoster);
                 
+                // Keep the touch event listener for the canvas
                 canvas.addEventListener('touchend', handleMobileCanvasClick);
             }
 
             function handleMobileCanvasClick(event) {
                 event.preventDefault();
-                const touch = event.changedTouches[0];
-                const rect = canvas.getBoundingClientRect();
-                const y = touch.clientY - rect.top;
-                
-                if (y < rect.height / 2) {
-                    drawPoster(true);
-                } else {
-                    downloadPoster();
-                }
+                drawPoster(true);
             }
 
             function setupDesktopVersion() {
