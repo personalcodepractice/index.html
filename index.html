@@ -96,7 +96,6 @@
                 background-color: #d3f896;
                 color: #000000;
                 border: none;
-                border-radius: 5px;
                 font-family: 'Ppgoshasans', Arial, sans-serif;
                 cursor: pointer;
             }
@@ -345,12 +344,13 @@
 
             function animateRectangles(timestamp) {
                 if (!animationStart) animationStart = timestamp;
-                const progress = (timestamp - animationStart) / 500; // 500ms animation
+                const progress = Math.min((timestamp - animationStart) / 500, 1); // 500ms animation, capped at 1
+
+                currentRect1Height = currentRect1Height + (targetRect1Height - currentRect1Height) * progress;
+                currentRect2Height = currentRect2Height + (targetRect2Height - currentRect2Height) * progress;
+                drawPoster(false);
 
                 if (progress < 1) {
-                    currentRect1Height = currentRect1Height + (targetRect1Height - currentRect1Height) * progress;
-                    currentRect2Height = currentRect2Height + (targetRect2Height - currentRect2Height) * progress;
-                    drawPoster(false);
                     requestAnimationFrame(animateRectangles);
                 } else {
                     currentRect1Height = targetRect1Height;
@@ -456,23 +456,15 @@
                     previousBackgroundColor = currentColors.background || previousBackgroundColor;
                     currentColors = generateColorPalette();
 
-                    const horizontalMargin = (canvasWidth - rectWidth) / 2;
-                    const totalPosterHeight = canvasHeight;
-                    const verticalMargins = 2 * horizontalMargin;
-                    const totalAvailableHeight = totalPosterHeight - verticalMargins - spaceBetween;
+                    const totalAvailableHeight = canvasHeight - 2 * ((canvasWidth - rectWidth) / 2) - spaceBetween;
                     const minHeight = totalAvailableHeight * 0.2;
 
                     targetRect1Height = Math.random() * (totalAvailableHeight - 2 * minHeight) + minHeight;
                     targetRect2Height = totalAvailableHeight - targetRect1Height;
 
-                    if (!currentRect1Height) {
-                        currentRect1Height = targetRect1Height;
-                        currentRect2Height = targetRect2Height;
-                    } else {
-                        animationStart = null;
-                        requestAnimationFrame(animateRectangles);
-                        return;
-                    }
+                    animationStart = null;
+                    requestAnimationFrame(animateRectangles);
+                    return;
                 }
 
                 ctx.fillStyle = currentColors.background;
@@ -502,17 +494,13 @@
                 ctx.textAlign = 'left';
 
                 updateCustomCursor();
-                updateMobileButtonStyles(); // Add this line
+                updateMobileButtonStyles();
 
                 if (is3DEnabled) {
                     update3DEffect();
                 } else {
                     canvas.style.transform = 'none';
                 }
-
-                console.log('Poster drawn. Canvas visibility:', getComputedStyle(canvas).visibility);
-                console.log('Canvas dimensions:', canvas.width, canvas.height);
-                console.log('Canvas style dimensions:', canvas.style.width, canvas.style.height);
             }
 
             function initialAnimation() {
@@ -524,9 +512,8 @@
 
                 drawPoster(false);
 
-                setTimeout(() => {
-                    drawPoster(true);
-                }, 500);
+                // Immediately draw a new poster instead of waiting
+                drawPoster(true);
             }
 
             function downloadPoster() {
@@ -617,17 +604,16 @@
                 } else {
                     setupDesktopVersion();
                 }
-                initialAnimation();
+                drawPoster(true); // Draw initial poster immediately
             }).catch(error => {
                 console.error('Font loading failed:', error);
-                // Fallback to default font and continue initialization
                 setupCanvas();
                 if (isMobileDevice()) {
                     setupMobileVersion();
                 } else {
                     setupDesktopVersion();
                 }
-                initialAnimation();
+                drawPoster(true); // Draw initial poster immediately
             });
 
             function applyDynamicButtonStyle(button) {
