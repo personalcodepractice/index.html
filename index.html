@@ -76,27 +76,33 @@
         }
 
         @media (max-width: 768px) {
-            #posterCanvas {
-                touch-action: pan-y;
-                user-select: none;
-                -webkit-user-select: none;
+            #poster-generator {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding-bottom: 20px; /* Add some padding at the bottom */
             }
 
             #mobileControls {
-                position: fixed;
-                bottom: 20px;
-                left: 0;
-                right: 0;
                 display: flex;
                 justify-content: space-around;
-                padding: 10px;
-                background-color: rgba(255, 255, 255, 0.8);
-                z-index: 1000;
+                width: 100%;
+                margin-top: 20px;
             }
 
             #mobileControls button {
-                padding: 15px 30px;
-                font-size: 18px;
+                padding: 10px 20px;
+                font-size: 16px;
+                background-color: #d3f896;
+                color: #000000;
+                border: none;
+                border-radius: 5px;
+                font-family: 'Ppgoshasans', Arial, sans-serif;
+                cursor: pointer;
+            }
+
+            #mobileControls button:active {
+                background-color: #b3d876;
             }
         }
     </style>
