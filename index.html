@@ -472,6 +472,15 @@
 
                 // Draw on the download canvas at full resolution
                 drawPosterOnCanvas(downloadCtx, canvasWidth, canvasHeight);
+
+                updateCustomCursor();
+                updateMobileButtonStyles();
+
+                if (is3DEnabled) {
+                    update3DEffect();
+                } else {
+                    canvas.style.transform = 'none';
+                }
             }
 
             function drawPosterOnCanvas(context, width, height) {
@@ -513,15 +522,31 @@
 
                 drawPoster(false);
 
-                // Immediately draw a new poster instead of waiting
-                drawPoster(true);
+                // Use requestAnimationFrame for smoother animation
+                requestAnimationFrame(() => {
+                    drawPoster(true);
+                });
             }
 
             function downloadPoster() {
-                const link = document.createElement('a');
-                link.download = 'generative_poster.jpg';
-                link.href = downloadCanvas.toDataURL('image/jpeg');
-                link.click();
+                // Convert the canvas content to a Blob
+                downloadCanvas.toBlob((blob) => {
+                    // Create a temporary URL for the Blob
+                    const url = URL.createObjectURL(blob);
+                    
+                    // Create a temporary anchor element
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'generative_poster.jpg';
+                    
+                    // Programmatically click the link to trigger the download
+                    document.body.appendChild(link);
+                    link.click();
+                    
+                    // Clean up
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                }, 'image/jpeg', 0.9); // JPEG format with 90% quality
             }
 
             function setupMobileVersion() {
