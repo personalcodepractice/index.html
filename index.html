@@ -36,6 +36,7 @@
             touch-action: none;
             visibility: visible !important;
             opacity: 1 !important;
+            -webkit-overflow-scrolling: touch;
         }
 
         #customCursor {
@@ -527,13 +528,34 @@
                     applyDynamicButtonStyle(downloadButton);
                 }, 3000); // Update every 3 seconds
                 
-                // Keep the touch event listener for the canvas
-                canvas.addEventListener('touchend', handleMobileCanvasClick);
+                // Remove this line:
+                // canvas.addEventListener('touchend', handleMobileCanvasClick);
+
+                // Add this line instead:
+                canvas.addEventListener('click', handleMobileCanvasClick);
             }
 
+            let lastTapTime = 0;
+            const tapDelay = 300; // milliseconds
+
             function handleMobileCanvasClick(event) {
-                event.preventDefault();
-                drawPoster(true);
+                const currentTime = new Date().getTime();
+                const tapLength = currentTime - lastTapTime;
+                
+                if (tapLength < tapDelay && tapLength > 0) {
+                    event.preventDefault();
+                    
+                    // Check if the click/tap is within the canvas bounds
+                    const rect = canvas.getBoundingClientRect();
+                    const x = event.clientX - rect.left;
+                    const y = event.clientY - rect.top;
+                    
+                    if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
+                        drawPoster(true);
+                    }
+                }
+                
+                lastTapTime = currentTime;
             }
 
             function setupDesktopVersion() {
