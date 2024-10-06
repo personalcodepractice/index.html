@@ -104,6 +104,17 @@
             #mobileControls button:active {
                 background-color: #b3d876;
             }
+
+            #posterCanvas {
+                touch-action: pan-y;
+                -webkit-overflow-scrolling: touch;
+                overflow-y: scroll;
+            }
+
+            #poster-generator {
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
         }
     </style>
 </head>
@@ -136,7 +147,7 @@
 
             function setupCanvas() {
                 const containerWidth = canvas.parentElement.clientWidth;
-                const containerHeight = canvas.parentElement.clientHeight;
+                const containerHeight = isMobileDevice() ? window.innerHeight * 0.7 : canvas.parentElement.clientHeight;
                 const aspectRatio = canvasHeight / canvasWidth;
 
                 let newWidth, newHeight;
@@ -145,21 +156,11 @@
                     newWidth = containerWidth;
                     newHeight = newWidth * aspectRatio;
 
-                    if (newHeight > containerHeight) {
-                        newHeight = containerHeight;
-                        newWidth = newHeight / aspectRatio;
-                    }
-
                     // Limit canvas size for mobile devices
-                    const maxDimension = 4096;
-                    if (newWidth > maxDimension || newHeight > maxDimension) {
-                        if (newWidth > newHeight) {
-                            newWidth = maxDimension;
-                            newHeight = newWidth * aspectRatio;
-                        } else {
-                            newHeight = maxDimension;
-                            newWidth = newHeight / aspectRatio;
-                        }
+                    const maxDimension = Math.min(4096, containerHeight);
+                    if (newHeight > maxDimension) {
+                        newHeight = maxDimension;
+                        newWidth = newHeight / aspectRatio;
                     }
                 } else {
                     // For desktop, maintain original size
@@ -558,6 +559,11 @@
                     applyDynamicButtonStyle(recutButton);
                     applyDynamicButtonStyle(downloadButton);
                 }, 3000); // Update every 3 seconds
+
+                // Remove any existing touch event listeners
+                canvas.removeEventListener('touchstart', handleTouchStart);
+                canvas.removeEventListener('touchmove', handleTouchMove);
+                canvas.removeEventListener('touchend', handleTouchEnd);
             }
 
             function setupDesktopVersion() {
@@ -595,7 +601,14 @@
                 document.addEventListener('mousemove', handleMouseMove);
             }
 
-            window.addEventListener('resize', setupCanvas);
+            window.addEventListener('resize', () => {
+                setupCanvas();
+                if (isMobileDevice()) {
+                    setupMobileVersion();
+                } else {
+                    setupDesktopVersion();
+                }
+            });
 
             document.fonts.load(`${12 * (300 / 72)}px Ppgoshasans`).then(() => {
                 setupCanvas();
