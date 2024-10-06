@@ -467,40 +467,41 @@
                     return;
                 }
 
-                ctx.fillStyle = currentColors.background;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                // Draw on the visible canvas
+                drawPosterOnCanvas(ctx, canvas.width, canvas.height);
+
+                // Draw on the download canvas at full resolution
+                drawPosterOnCanvas(downloadCtx, canvasWidth, canvasHeight);
+            }
+
+            function drawPosterOnCanvas(context, width, height) {
+                const localScaleFactor = width / canvasWidth;
+
+                context.fillStyle = currentColors.background;
+                context.fillRect(0, 0, width, height);
 
                 const horizontalMargin = (canvasWidth - rectWidth) / 2;
-                const startY = horizontalMargin * scaleFactor;
-                const startX = horizontalMargin * scaleFactor;
-                const maxIndent = 37.5 * scaleFactor;
+                const startY = horizontalMargin * localScaleFactor;
+                const startX = horizontalMargin * localScaleFactor;
+                const maxIndent = 37.5 * localScaleFactor;
 
-                ctx.fillStyle = currentColors.rect1;
-                drawIndentedRectangle(ctx, startX, startY, rectWidth * scaleFactor, currentRect1Height * scaleFactor, maxIndent, false);
+                context.fillStyle = currentColors.rect1;
+                drawIndentedRectangle(context, startX, startY, rectWidth * localScaleFactor, currentRect1Height * localScaleFactor, maxIndent, false);
 
-                ctx.fillStyle = currentColors.rect2;
-                drawIndentedRectangle(ctx, startX, startY + currentRect1Height * scaleFactor + spaceBetween * scaleFactor, rectWidth * scaleFactor, currentRect2Height * scaleFactor, maxIndent, true);
+                context.fillStyle = currentColors.rect2;
+                drawIndentedRectangle(context, startX, startY + currentRect1Height * localScaleFactor + spaceBetween * localScaleFactor, rectWidth * localScaleFactor, currentRect2Height * localScaleFactor, maxIndent, true);
 
-                ctx.fillStyle = currentColors.rect1;
-                const fontSize = 12 * (300 / 72) * scaleFactor;
-                ctx.font = `${fontSize}px Ppgoshasans`;
-                ctx.textBaseline = 'top';
-                const textY = startY + (currentRect1Height + spaceBetween + currentRect2Height) * scaleFactor + 70 * scaleFactor;
-                ctx.fillText('Recut', startX, textY);
+                context.fillStyle = currentColors.rect1;
+                const fontSize = 12 * (300 / 72) * localScaleFactor;
+                context.font = `${fontSize}px Ppgoshasans`;
+                context.textBaseline = 'top';
+                const textY = startY + (currentRect1Height + spaceBetween + currentRect2Height) * localScaleFactor + 70 * localScaleFactor;
+                context.fillText('Recut', startX, textY);
 
-                ctx.textAlign = 'right';
-                ctx.fillText('made by personalpractice.studio', startX + rectWidth * scaleFactor, textY);
+                context.textAlign = 'right';
+                context.fillText('made by personalpractice.studio', startX + rectWidth * localScaleFactor, textY);
 
-                ctx.textAlign = 'left';
-
-                updateCustomCursor();
-                updateMobileButtonStyles();
-
-                if (is3DEnabled) {
-                    update3DEffect();
-                } else {
-                    canvas.style.transform = 'none';
-                }
+                context.textAlign = 'left';
             }
 
             function initialAnimation() {
@@ -519,7 +520,7 @@
             function downloadPoster() {
                 const link = document.createElement('a');
                 link.download = 'generative_poster.jpg';
-                link.href = canvas.toDataURL('image/jpeg');
+                link.href = downloadCanvas.toDataURL('image/jpeg');
                 link.click();
             }
 
@@ -634,6 +635,11 @@
                     applyDynamicButtonStyle(downloadButton);
                 }
             }
+
+            const downloadCanvas = document.createElement('canvas');
+            const downloadCtx = downloadCanvas.getContext('2d');
+            downloadCanvas.width = canvasWidth;
+            downloadCanvas.height = canvasHeight;
         })();
     </script>
 </body>
