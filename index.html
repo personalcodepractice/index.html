@@ -464,22 +464,21 @@
 
                     animationStart = null;
                     requestAnimationFrame(animateRectangles);
-                    return;
-                }
-
-                // Draw on the visible canvas
-                drawPosterOnCanvas(ctx, canvas.width, canvas.height);
-
-                // Draw on the download canvas at full resolution
-                drawPosterOnCanvas(downloadCtx, canvasWidth, canvasHeight);
-
-                updateCustomCursor();
-                updateMobileButtonStyles();
-
-                if (is3DEnabled) {
-                    update3DEffect();
                 } else {
-                    canvas.style.transform = 'none';
+                    // Draw on the visible canvas
+                    drawPosterOnCanvas(ctx, canvas.width, canvas.height);
+
+                    // Draw on the download canvas at full resolution
+                    drawPosterOnCanvas(downloadCtx, canvasWidth, canvasHeight);
+
+                    updateCustomCursor();
+                    updateMobileButtonStyles();
+
+                    if (is3DEnabled) {
+                        update3DEffect();
+                    } else {
+                        canvas.style.transform = 'none';
+                    }
                 }
             }
 
@@ -520,33 +519,33 @@
                 currentRect1Height = Math.random() * (totalAvailableHeight - 2 * minHeight) + minHeight;
                 currentRect2Height = totalAvailableHeight - currentRect1Height;
 
+                // Draw the initial poster
                 drawPoster(false);
 
-                // Use requestAnimationFrame for smoother animation
-                requestAnimationFrame(() => {
+                // Animate to a new poster after a short delay
+                setTimeout(() => {
                     drawPoster(true);
-                });
+                }, 100);
             }
 
             function downloadPoster() {
-                // Convert the canvas content to a Blob
-                downloadCanvas.toBlob((blob) => {
-                    // Create a temporary URL for the Blob
-                    const url = URL.createObjectURL(blob);
-                    
-                    // Create a temporary anchor element
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = 'generative_poster.jpg';
-                    
-                    // Programmatically click the link to trigger the download
-                    document.body.appendChild(link);
-                    link.click();
-                    
-                    // Clean up
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                }, 'image/jpeg', 0.9); // JPEG format with 90% quality
+                if (isMobileDevice()) {
+                    // For mobile devices, open the image in a new tab
+                    const dataURL = downloadCanvas.toDataURL('image/jpeg', 0.9);
+                    window.open(dataURL, '_blank');
+                } else {
+                    // For desktop, use the Blob approach
+                    downloadCanvas.toBlob((blob) => {
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = 'generative_poster.jpg';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                    }, 'image/jpeg', 0.9);
+                }
             }
 
             function setupMobileVersion() {
@@ -623,23 +622,21 @@
                 }
             });
 
-            document.fonts.load(`${12 * (300 / 72)}px Ppgoshasans`).then(() => {
+            function init() {
                 setupCanvas();
                 if (isMobileDevice()) {
                     setupMobileVersion();
                 } else {
                     setupDesktopVersion();
                 }
-                drawPoster(true); // Draw initial poster immediately
+                initialAnimation();
+            }
+
+            document.fonts.load(`${12 * (300 / 72)}px Ppgoshasans`).then(() => {
+                init();
             }).catch(error => {
                 console.error('Font loading failed:', error);
-                setupCanvas();
-                if (isMobileDevice()) {
-                    setupMobileVersion();
-                } else {
-                    setupDesktopVersion();
-                }
-                drawPoster(true); // Draw initial poster immediately
+                init();
             });
 
             function applyDynamicButtonStyle(button) {
