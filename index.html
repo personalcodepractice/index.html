@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generative Poster Design Tool</title>
+    <style>
+        body {
+            background-color: #1E1E1E;
+        }
+
+        #poster-generator {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            max-height: 700px; /* Set max height to 700px */
+            width: 100%;
+        }
+
+        @font-face {
+            font-family: 'Ppgoshasans';
+            src: url('https://cdn.prod.website-files.com/62b40f9047a2fa5889db7afd/66ffe814bb202f5e5e660acd_PPGoshaSans-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        #poster-generator #posterCanvas {
+            cursor: none !important;
+            max-height: 700px; /* Set max height to 700px */
+            width: auto; /* Allow width to adjust proportionally */
+            touch-action: none;
+        }
+
+        #poster-generator #customCursor {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            font-family: 'Ppgoshasans', Arial, sans-serif;
+            font-size: 12.6px; /* 10% smaller than 14px */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 108px; /* 10% smaller than 120px */
+            height: 36px; /* 10% smaller than 40px */
+            transition: background-color 0.3s ease, clip-path 0.3s ease;
+        }
+
+        #poster-generator #downloadButton {
+            display: none; /* Hidden by default, shown via JS on mobile */
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        @media screen and (max-width: 768px) {
+            #customCursor {
+                display: none !important; /* Hide custom cursor on mobile */
+            }
+
+            #posterCanvas {
+                max-width: 100%;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="poster-generator-container">
+        <canvas id="posterCanvas"></canvas>
+        <div id="customCursor"></div>
+        <button id="downloadButton" style="display: none;">Download Poster</button>
+    </div>
+    <script>
+        (function() {
+            const PosterGenerator = {
+                container: null,
+                canvas: null,
+                ctx: null,
+                customCursor: null,
+                downloadButton: null,
+                isMobile: false,
+
+                init(containerId, canvasId, cursorId, buttonId) {
+                    this.container = document.getElementById(containerId);
+                    this.canvas = document.getElementById(canvasId);
+                    this.ctx = this.canvas.getContext('2d');
+                    this.customCursor = document.getElementById(cursorId);
+                    this.downloadButton = document.getElementById(buttonId);
+
+                    this.checkMobile();
+                    this.setupCanvas();
+                    
+                    if (this.isMobile) {
+                        this.setupMobile();
+                    } else {
+                        this.setupDesktop();
+                    }
+
+                    // Add resize listener
+                    window.addEventListener('resize', this.handleResize.bind(this));
+                },
+
+                checkMobile() {
+                    this.isMobile = this.container.clientWidth <= 768; // Adjust this threshold as needed
+                },
+
+                handleResize() {
+                    this.checkMobile();
+                    this.setupCanvas();
+                    if (this.isMobile) {
+                        this.setupMobile();
+                    } else {
+                        this.setupDesktop();
+                    }
+                },
+
+                setupCanvas() {
+                    const containerWidth = this.container.clientWidth;
+                    const containerHeight = this.container.clientHeight;
+
+                    this.canvas.width = containerWidth;
+                    this.canvas.height = containerHeight;
+
+                    // Adjust canvas style
+                    this.canvas.style.width = `${containerWidth}px`;
+                    this.canvas.style.height = `${containerHeight}px`;
+                },
+
+                setupMobile() {
+                    this.drawStaticPoster();
+                    this.downloadButton.style.display = 'block';
+                    this.customCursor.style.display = 'none';
+                    this.downloadButton.addEventListener('click', this.downloadPoster.bind(this));
+                    
+                    // Remove desktop event listeners if they exist
+                    this.canvas.removeEventListener('mousemove', this.handleMouseMove);
+                    this.canvas.removeEventListener('click', this.handleClick);
+                },
+
+                setupDesktop() {
+                    this.drawInitialPoster();
+                    this.downloadButton.style.display = 'none';
+                    this.setupEventListeners();
+                },
+
+                drawStaticPoster() {
+                    // Draw a static version of your poster here
+                    this.ctx.fillStyle = '#333333';
+                    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                    this.ctx.fillStyle = '#FFFFFF';
+                    this.ctx.font = '20px Arial';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText('Static Poster', this.canvas.width / 2, this.canvas.height / 2);
+                },
+
+                setupEventListeners() {
+                    this.handleMouseMove = this.handleMouseMove.bind(this);
+                    this.handleClick = this.handleClick.bind(this);
+                    this.canvas.addEventListener('mousemove', this.handleMouseMove);
+                    this.canvas.addEventListener('click', this.handleClick);
+                },
+
+                handleMouseMove(event) {
+                    // Your existing mouse move logic
+                },
+
+                handleClick(event) {
+                    // Your existing click logic
+                },
+
+                drawInitialPoster() {
+                    // Your existing initial poster drawing code for desktop
+                    // ...
+                },
+
+                downloadPoster() {
+                    const link = document.createElement('a');
+                    link.download = 'poster.png';
+                    link.href = this.canvas.toDataURL('image/png');
+                    link.click();
+                },
+
+                // ... other existing methods ...
+            };
+
+            document.addEventListener('DOMContentLoaded', () => {
+                PosterGenerator.init('poster-generator-container', 'posterCanvas', 'customCursor', 'downloadButton');
+            });
+        })();
+    </script>
+</body>
+</html>
