@@ -325,8 +325,18 @@
             let mouseX = 0;
             let mouseY = 0;
             const maxRotation = 5; // Maximum rotation in degrees
+            let is3DEnabled = !isMobileDevice();
+            let lastUpdateTime = 0;
+            const updateInterval = 100; // Update every 100ms instead of every frame
 
             function update3DEffect() {
+                if (!is3DEnabled) return;
+
+                const currentTime = Date.now();
+                if (currentTime - lastUpdateTime < updateInterval) return;
+
+                lastUpdateTime = currentTime;
+
                 const rotateY = (mouseX / window.innerWidth - 0.5) * maxRotation;
                 const rotateX = (mouseY / window.innerHeight - 0.5) * -maxRotation;
                 
@@ -336,11 +346,17 @@
             function handleMouseMove(event) {
                 mouseX = event.clientX;
                 mouseY = event.clientY;
-                requestAnimationFrame(update3DEffect);
+                if (is3DEnabled) {
+                    requestAnimationFrame(update3DEffect);
+                }
             }
 
             // Add event listener for mouse movement
-            document.addEventListener('mousemove', handleMouseMove);
+            if (!isMobileDevice()) {
+                document.addEventListener('mousemove', handleMouseMove);
+            } else {
+                canvas.style.transform = 'none'; // Reset any existing transform
+            }
 
             // Modify the drawPoster function to include 3D effect
             function drawPoster(newHeights = true) {
@@ -404,8 +420,10 @@
                 // After drawing the poster, update the custom cursor
                 updateCustomCursor();
 
-                // EXPERIMENTAL: Apply 3D effect
-                update3DEffect();
+                // EXPERIMENTAL: Apply 3D effect only on desktop
+                if (is3DEnabled) {
+                    update3DEffect();
+                }
             }
 
             // Initial animation
@@ -445,8 +463,10 @@
             document.fonts.load(`${12 * (300 / 72)}px Ppgoshasans`).then(() => {
                 initialAnimation();
                 
-                // EXPERIMENTAL: Initialize 3D effect
-                update3DEffect();
+                // EXPERIMENTAL: Initialize 3D effect only on desktop
+                if (is3DEnabled) {
+                    update3DEffect();
+                }
             });
 
             // Add event listeners
