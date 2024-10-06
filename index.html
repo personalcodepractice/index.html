@@ -1,1 +1,691 @@
-<h1>hello world</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generative Poster Design Tool</title>
+    <style>
+        body {
+            background-color: #1E1E1E;
+        }
+
+        #poster-generator {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            max-height: 700px; /* Set max height to 700px */
+            width: 100%;
+        }
+
+        @font-face {
+            font-family: 'Ppgoshasans';
+            src: url('https://cdn.prod.website-files.com/62b40f9047a2fa5889db7afd/66ffe814bb202f5e5e660acd_PPGoshaSans-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        #poster-generator #posterCanvas {
+            cursor: none !important;
+            max-height: 700px; /* Set max height to 700px */
+            width: auto; /* Allow width to adjust proportionally */
+            touch-action: none;
+        }
+
+        #poster-generator #customCursor {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            font-family: 'Ppgoshasans', Arial, sans-serif;
+            font-size: 12.6px; /* 10% smaller than 14px */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 108px; /* 10% smaller than 120px */
+            height: 36px; /* 10% smaller than 40px */
+            transition: background-color 0.3s ease, clip-path 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div id="poster-generator">
+        <canvas id="posterCanvas"></canvas>
+        <div id="customCursor"></div>
+    </div>
+    <script>
+        (function() {
+            const canvas = document.getElementById('posterCanvas');
+            const ctx = canvas.getContext('2d');
+            const customCursor = document.getElementById('customCursor');
+
+            // A2 size in pixels (300 DPI)
+            const canvasWidth = 4960;
+            const canvasHeight = 7016;
+
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+
+            // Scale canvas for display
+            const maxHeight = 700;
+            const scale = Math.min(maxHeight / canvasHeight, 1);
+            canvas.style.width = `${canvasWidth * scale}px`;
+            canvas.style.height = `${canvasHeight * scale}px`;
+
+            // Add this new array of color palettes
+            const inspirationPalettes = [
+                { background: "#261a16", rect1: "#efebe8", rect2: "#284303" },
+                { background: "#030203", rect1: "#f1ebea", rect2: "#0d4785" },
+                { background: "#3a382e", rect1: "#d1d1d1", rect2: "#07221d" },
+                { background: "#000000", rect1: "#e1e1e1", rect2: "#202103" },
+                { background: "#473c39", rect1: "#e3eae7", rect2: "#040f15" },
+                { background: "#0b0609", rect1: "#eae3e0", rect2: "#1c1f01" },
+                { background: "#0b070b", rect1: "#fdfdfc", rect2: "#2f3503" },
+                { background: "#020202", rect1: "#bfbfbf", rect2: "#0f5f73" },
+                { background: "#3d2c1d", rect1: "#d3d3d3", rect2: "#0c2484" },
+                { background: "#272511", rect1: "#b3beb3", rect2: "#052310" },
+                { background: "#1c0e1f", rect1: "#cfbbbb", rect2: "#36470e" }
+            ];
+
+            function hslToHex(h, s, l) {
+                l /= 100;
+                const a = s * Math.min(l, 1 - l) / 100;
+                const f = n => {
+                    const k = (n + h / 30) % 12;
+                    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+                    return Math.round(255 * color).toString(16).padStart(2, '0');
+                };
+                return `#${f(0)}${f(8)}${f(4)}`;
+            }
+
+            function hexToHSL(hex) {
+                let r = parseInt(hex.slice(1, 3), 16) / 255;
+                let g = parseInt(hex.slice(3, 5), 16) / 255;
+                let b = parseInt(hex.slice(5, 7), 16) / 255;
+
+                let max = Math.max(r, g, b), min = Math.min(r, g, b);
+                let h, s, l = (max + min) / 2;
+
+                if (max === min) {
+                    h = s = 0;
+                } else {
+                    let d = max - min;
+                    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                    switch (max) {
+                        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                        case g: h = (b - r) / d + 2; break;
+                        case b: h = (r - g) / d + 4; break;
+                    }
+                    h /= 6;
+                }
+
+                return [h * 360, s * 100, l * 100];
+            }
+
+            function generateSimilarColor(baseColor) {
+                let [h, s, l] = hexToHSL(baseColor);
+                
+                // Adjust hue
+                h = (h + Math.random() * 180 - 90 + 360) % 360;
+                
+                // Adjust saturation and lightness
+                s = Math.max(0, Math.min(100, s + Math.random() * 40 - 20));
+                l = Math.max(0, Math.min(100, l + Math.random() * 40 - 20));
+                
+                // Avoid saturated and bright colors, especially in green, pink, and purple ranges
+                if ((h >= 60 && h <= 180) || (h >= 280 || h <= 30)) {  // Green, Purple, or Pink hue ranges
+                    if (s > 40) s = 40;  // Further reduce saturation
+                    if (l > 60) l = 60;  // Reduce lightness, but allow some brightness
+                    
+                    // Additional reduction for very saturated colors
+                    if (s > 30 && l > 50) {
+                        s -= 10;
+                        l -= 10;
+                    }
+                }
+                
+                // Global saturation and lightness limits to avoid very bright and saturated colors
+                if (s > 70) s = 70;
+                if (l > 70) l = 70;
+                
+                // Specific adjustments for purple/magenta range
+                if (h >= 270 && h <= 330) {
+                    if (s > 40) s = 40;
+                    if (l > 40) l = 40;
+                }
+                
+                // Extra adjustment for greens
+                if (h >= 60 && h <= 180) {  // Expanded green range to include yellow-greens and blue-greens
+                    if (s > 25) s = 25;  // Even further reduce saturation for greens
+                    if (l > 45) l = 45;  // Reduce lightness for greens
+                    if (l < 15) l = 15;  // Ensure greens don't get too dark
+                    
+                    // Additional adjustment for olive-to-sage greens
+                    if (h >= 60 && h <= 120) {
+                        if (s > 20) s = 20;  // Further reduce saturation for olive-to-sage greens
+                        if (l > 40) l = 40;  // Further reduce lightness for olive-to-sage greens
+                    }
+                }
+                
+                // New adjustment for blues and cyans
+                if (h >= 180 && h <= 240) {  // Blue to cyan range
+                    if (s > 30) s = 30;  // Reduce saturation for blues and cyans
+                    if (l > 50) l = 50;  // Reduce lightness for blues and cyans
+                    if (l < 20) l = 20;  // Ensure blues and cyans don't get too dark
+                }
+                
+                return hslToHex(h, s, l);
+            }
+
+            function calculateColorDifference(color1, color2) {
+                const [r1, g1, b1] = hexToRGB(color1);
+                const [r2, g2, b2] = hexToRGB(color2);
+                return Math.sqrt(
+                    Math.pow(r2 - r1, 2) +
+                    Math.pow(g2 - g1, 2) +
+                    Math.pow(b2 - b1, 2)
+                );
+            }
+
+            function hexToRGB(hex) {
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
+                return [r, g, b];
+            }
+
+            function generateColorPalette() {
+                const inspirationPalette = inspirationPalettes[Math.floor(Math.random() * inspirationPalettes.length)];
+                let background, rect1, rect2;
+                let attempts = 0;
+                const maxAttempts = 10;
+
+                do {
+                    background = generateSimilarColor(inspirationPalette.background);
+                    rect1 = generateSimilarColor(inspirationPalette.rect1);
+                    rect2 = generateSimilarColor(inspirationPalette.rect2);
+
+                    const diff1 = calculateColorDifference(background, rect1);
+                    const diff2 = calculateColorDifference(background, rect2);
+                    const diff3 = calculateColorDifference(rect1, rect2);
+
+                    // Ensure there's enough difference between all colors
+                    if (diff1 > 100 && diff2 > 100 && diff3 > 100) {
+                        break;
+                    }
+
+                    attempts++;
+                } while (attempts < maxAttempts);
+
+                return { background, rect1, rect2 };
+            }
+
+            function drawIndentedRectangle(ctx, startX, startY, width, height, maxIndent, isTopIndented) {
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+
+                if (isTopIndented) {
+                    // Top indented edge
+                    const numPoints = Math.floor(Math.random() * 3) + 2; // 2 to 4 points
+                    for (let i = 1; i <= numPoints; i++) {
+                        const x = startX + (width / numPoints) * i;
+                        const y = startY + (Math.random() * 2 - 1) * maxIndent;
+                        ctx.lineTo(x, y);
+                    }
+                } else {
+                    ctx.lineTo(startX + width, startY);
+                }
+
+                ctx.lineTo(startX + width, startY + height);
+
+                if (!isTopIndented) {
+                    // Bottom indented edge
+                    const numPoints = Math.floor(Math.random() * 3) + 2; // 2 to 4 points
+                    for (let i = numPoints - 1; i >= 0; i--) {
+                        const x = startX + (width / numPoints) * i;
+                        const y = startY + height + (Math.random() * 2 - 1) * maxIndent;
+                        ctx.lineTo(x, y);
+                    }
+                } else {
+                    ctx.lineTo(startX, startY + height);
+                }
+
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            let currentColors = {};
+            let previousBackgroundColor = '#000000'; // Default to black initially
+
+            function hexToRGBA(hex, alpha) {
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+
+            let currentRect1Height, currentRect2Height;
+            let targetRect1Height, targetRect2Height;
+            let animationStart;
+            const rectWidth = 15.3109 * 300; // 300 DPI
+            const spaceBetween = 0.46 * 300;
+
+            function animateRectangles(timestamp) {
+                if (!animationStart) animationStart = timestamp;
+                const progress = (timestamp - animationStart) / 500; // 500ms animation
+
+                if (progress < 1) {
+                    currentRect1Height = currentRect1Height + (targetRect1Height - currentRect1Height) * progress;
+                    currentRect2Height = currentRect2Height + (targetRect2Height - currentRect2Height) * progress;
+                    drawPoster(false);
+                    requestAnimationFrame(animateRectangles);
+                } else {
+                    currentRect1Height = targetRect1Height;
+                    currentRect2Height = targetRect2Height;
+                    drawPoster(false);
+                }
+            }
+
+            let isOverCanvas = false;
+
+            function getRandomDistortion() {
+                return Math.random() * 10 - 5; // Random value between -5 and 5
+            }
+
+            function updateCustomCursor(event) {
+                let cursorText;
+                if (event) {
+                    const rect = canvas.getBoundingClientRect();
+                    const y = event.clientY - rect.top;
+                    cursorText = y < rect.height / 2 ? 'Recut' : 'Download';
+                    customCursor.style.display = 'flex';
+                    customCursor.style.left = `${event.clientX - 54}px`; // Moved 10px to the right (60 - 6)
+                    customCursor.style.top = `${event.clientY - 45}px`; // Adjusted for 10% smaller height
+                    customCursor.textContent = cursorText;
+
+                    const clipPath = `polygon(
+                        ${getRandomDistortion()}% ${getRandomDistortion()}%, 
+                        ${100 + getRandomDistortion()}% ${getRandomDistortion()}%, 
+                        ${100 + getRandomDistortion()}% ${100 + getRandomDistortion()}%, 
+                        ${getRandomDistortion()}% ${100 + getRandomDistortion()}%
+                    )`;
+                    customCursor.style.clipPath = clipPath;
+                } else {
+                    cursorText = 'Recut';
+                    customCursor.style.display = 'none';
+                }
+                
+                customCursor.style.backgroundColor = '#d3f896'; // Always set to #d3f896
+                customCursor.style.color = '#000000'; // Always set to #000000
+            }
+
+            // EXPERIMENTAL FEATURE: 3D Distortion
+            // This section adds a 3D rotation effect to the poster based on mouse movement
+            let mouseX = 0;
+            let mouseY = 0;
+            const maxRotation = 5; // Maximum rotation in degrees
+
+            function update3DEffect() {
+                const rotateY = (mouseX / window.innerWidth - 0.5) * maxRotation;
+                const rotateX = (mouseY / window.innerHeight - 0.5) * -maxRotation;
+                
+                canvas.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+            }
+
+            function handleMouseMove(event) {
+                mouseX = event.clientX;
+                mouseY = event.clientY;
+                requestAnimationFrame(update3DEffect);
+            }
+
+            // Add event listener for mouse movement
+            document.addEventListener('mousemove', handleMouseMove);
+
+            // Modify the drawPoster function to include 3D effect
+            function drawPoster(newHeights = true) {
+                if (newHeights) {
+                    previousBackgroundColor = currentColors.background || previousBackgroundColor;
+                    currentColors = generateColorPalette();
+
+                    // DYNAMIC RECTANGLE HEIGHT START
+                    const horizontalMargin = (canvasWidth - rectWidth) / 2;
+                    const totalPosterHeight = canvasHeight;
+                    const verticalMargins = 2 * horizontalMargin;
+                    const totalAvailableHeight = totalPosterHeight - verticalMargins - spaceBetween;
+                    const minHeight = totalAvailableHeight * 0.2;
+
+                    targetRect1Height = Math.random() * (totalAvailableHeight - 2 * minHeight) + minHeight;
+                    targetRect2Height = totalAvailableHeight - targetRect1Height;
+
+                    if (!currentRect1Height) {
+                        currentRect1Height = targetRect1Height;
+                        currentRect2Height = targetRect2Height;
+                    } else {
+                        animationStart = null;
+                        requestAnimationFrame(animateRectangles);
+                        return;
+                    }
+                    // DYNAMIC RECTANGLE HEIGHT END
+                }
+
+                // Clear the canvas
+                ctx.fillStyle = currentColors.background;
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+                const horizontalMargin = (canvasWidth - rectWidth) / 2;
+                const startY = horizontalMargin;
+                const startX = horizontalMargin;
+                const maxIndent = 37.5;
+
+                // Draw first rectangle (bottom indented)
+                ctx.fillStyle = currentColors.rect1;
+                drawIndentedRectangle(ctx, startX, startY, rectWidth, currentRect1Height, maxIndent, false);
+
+                // Draw second rectangle (top indented)
+                ctx.fillStyle = currentColors.rect2;
+                drawIndentedRectangle(ctx, startX, startY + currentRect1Height + spaceBetween, rectWidth, currentRect2Height, maxIndent, true);
+
+                // Add "Recut" text
+                ctx.fillStyle = currentColors.rect1;
+                const fontSize = 12 * (300 / 72); // Convert 12pt to pixels at 300 DPI
+                ctx.font = `${fontSize}px Ppgoshasans`;
+                ctx.textBaseline = 'top'; // Align to top of text
+                const textY = startY + currentRect1Height + spaceBetween + currentRect2Height + 70; // 70px below the second rectangle
+                ctx.fillText('Recut', startX, textY);
+
+                // Add "made by personalpractice.studio" text
+                ctx.textAlign = 'right'; // Align text to the right
+                ctx.fillText('made by personalpractice.studio', startX + rectWidth, textY);
+
+                // Reset text alignment for future drawings
+                ctx.textAlign = 'left';
+
+                // After drawing the poster, update the custom cursor
+                updateCustomCursor();
+
+                // EXPERIMENTAL: Apply 3D effect
+                update3DEffect();
+            }
+
+            // Initial animation
+            function initialAnimation() {
+                // Generate initial colors and heights
+                currentColors = generateColorPalette();
+                const totalAvailableHeight = canvasHeight - 2 * ((canvasWidth - rectWidth) / 2) - spaceBetween;
+                const minHeight = totalAvailableHeight * 0.2;
+                currentRect1Height = Math.random() * (totalAvailableHeight - 2 * minHeight) + minHeight;
+                currentRect2Height = totalAvailableHeight - currentRect1Height;
+
+                // Draw initial poster
+                drawPoster(false);
+
+                // Trigger a recut animation after a 0.5 second delay
+                setTimeout(() => {
+                    drawPoster(true);
+                }, 500);
+            }
+
+            function interpolateColor(color1, color2, factor) {
+                const r1 = parseInt(color1.slice(1, 3), 16);
+                const g1 = parseInt(color1.slice(3, 5), 16);
+                const b1 = parseInt(color1.slice(5, 7), 16);
+                const r2 = parseInt(color2.slice(1, 3), 16);
+                const g2 = parseInt(color2.slice(3, 5), 16);
+                const b2 = parseInt(color2.slice(5, 7), 16);
+
+                const r = Math.round(r1 + factor * (r2 - r1));
+                const g = Math.round(g1 + factor * (g2 - g1));
+                const b = Math.round(b1 + factor * (b2 - b1));
+
+                return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
+            }
+
+            // Make sure to preload the font
+            document.fonts.load(`${12 * (300 / 72)}px Ppgoshasans`).then(() => {
+                initialAnimation();
+                
+                // EXPERIMENTAL: Initialize 3D effect
+                update3DEffect();
+            });
+
+            // Add event listeners
+            canvas.addEventListener('mousemove', updateCustomCursor);
+
+            canvas.addEventListener('mouseenter', () => {
+                document.body.style.cursor = 'none';
+                updateCustomCursor(event);
+            });
+
+            canvas.addEventListener('mouseleave', () => {
+                document.body.style.cursor = 'default';
+                updateCustomCursor();
+            });
+
+            canvas.addEventListener('click', (event) => {
+                const rect = canvas.getBoundingClientRect();
+                const y = event.clientY - rect.top;
+                
+                if (y < rect.height / 2) {
+                    // Recut the poster (previously "Shuffle")
+                    drawPoster(true);
+                } else {
+                    downloadPoster();
+                }
+                
+                // Update the cursor with the previous color immediately after click
+                updateCustomCursor(event);
+                
+                // Then update it again after a short delay to get the new color
+                setTimeout(() => {
+                    previousBackgroundColor = currentColors.background;
+                    updateCustomCursor(event);
+                }, 50);
+            });
+
+            // Make sure to call this after setting up the canvas size
+            function updateCanvasCursor() {
+                canvas.style.cursor = 'none !important';
+            }
+
+            // Call this function after setting up the canvas
+            updateCanvasCursor();
+
+            // Add this to prevent cursor from showing on right-click
+            canvas.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+                updateCustomCursor(event);
+            });
+
+            // Add this new function to handle poster download
+            function downloadPoster() {
+                const link = document.createElement('a');
+                link.download = 'generative_poster.jpg';
+                link.href = canvas.toDataURL('image/jpeg');
+                link.click();
+            }
+
+            function getContrastColor(hexColor) {
+                // Convert hex to RGB
+                const r = parseInt(hexColor.slice(1, 3), 16);
+                const g = parseInt(hexColor.slice(3, 5), 16);
+                const b = parseInt(hexColor.slice(5, 7), 16);
+                
+                // Calculate luminance
+                const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                
+                // Return black or white depending on luminance
+                return luminance > 0.5 ? '#000000' : '#FFFFFF';
+            }
+
+            const PosterGenerator = {
+                // ... existing properties ...
+
+                aspectRatio: 7016 / 4960, // Height / Width of the original canvas
+                maxWidth: 4960, // Maximum width of the canvas in pixels
+                maxHeight: 7016, // Maximum height of the canvas in pixels
+
+                init(canvasId, cursorId) {
+                    // ... existing init code ...
+                    this.setupCanvas();
+                    window.addEventListener('resize', this.handleResize.bind(this));
+                    // ... rest of init code ...
+                },
+
+                setupCanvas() {
+                    const containerWidth = this.canvas.parentElement.clientWidth;
+                    const containerHeight = this.canvas.parentElement.clientHeight;
+
+                    let canvasWidth = containerWidth;
+                    let canvasHeight = canvasWidth * this.aspectRatio;
+
+                    if (canvasHeight > containerHeight) {
+                        canvasHeight = containerHeight;
+                        canvasWidth = canvasHeight / this.aspectRatio;
+                    }
+
+                    canvasWidth = Math.min(canvasWidth, this.maxWidth);
+                    canvasHeight = Math.min(canvasHeight, this.maxHeight);
+
+                    // Get the device pixel ratio
+                    const dpr = window.devicePixelRatio || 1;
+
+                    // Set the canvas size in CSS pixels
+                    this.canvas.style.width = `${canvasWidth}px`;
+                    this.canvas.style.height = `${canvasHeight}px`;
+
+                    // Set the canvas size in actual pixels
+                    this.canvas.width = canvasWidth * dpr;
+                    this.canvas.height = canvasHeight * dpr;
+
+                    // Scale the canvas context
+                    this.ctx.scale(dpr, dpr);
+
+                    // Store the scale factor for use in drawing
+                    this.scaleFactor = (canvasWidth / this.maxWidth) * dpr;
+
+                    // Adjust the context for high-DPI displays
+                    this.ctx.imageSmoothingEnabled = true;
+                    this.ctx.imageSmoothingQuality = 'high';
+
+                    // Redraw the poster with the new dimensions
+                    this.drawPoster(false);
+                },
+
+                handleResize() {
+                    this.setupCanvas();
+                },
+
+                drawPoster(animate = false) {
+                    // Clear the canvas with the correct dimensions
+                    this.ctx.clearRect(0, 0, this.canvas.width / window.devicePixelRatio, this.canvas.height / window.devicePixelRatio);
+
+                    // Your existing drawing code, using this.scaleFactor for dimensions
+                    // For example:
+                    // this.ctx.lineWidth = 2 * this.scaleFactor;
+                    // this.ctx.font = `${14 * this.scaleFactor}px YourFont`;
+
+                    // ... rest of your drawing code ...
+                },
+
+                // ... rest of your methods ...
+
+                isTouching: false,
+
+                setupEventListeners() {
+                    // Existing mouse events
+                    this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
+                    this.canvas.addEventListener('mouseenter', this.handleMouseEnter.bind(this));
+                    this.canvas.addEventListener('mouseleave', this.handleMouseLeave.bind(this));
+                    this.canvas.addEventListener('click', this.handleClick.bind(this));
+                    this.canvas.addEventListener('contextmenu', this.handleContextMenu.bind(this));
+
+                    // New touch events
+                    this.canvas.addEventListener('touchstart', this.handleTouchStart.bind(this));
+                    this.canvas.addEventListener('touchmove', this.handleTouchMove.bind(this));
+                    this.canvas.addEventListener('touchend', this.handleTouchEnd.bind(this));
+
+                    // Prevent default touch behavior to avoid scrolling/zooming
+                    document.body.addEventListener('touchstart', this.preventDefault, { passive: false });
+                    document.body.addEventListener('touchmove', this.preventDefault, { passive: false });
+                },
+
+                preventDefault(e) {
+                    e.preventDefault();
+                },
+
+                handleTouchStart(e) {
+                    this.isTouching = true;
+                    this.handleTouch(e.touches[0]);
+                    this.updateCustomCursor(e.touches[0]);
+                },
+
+                handleTouchMove(e) {
+                    if (this.isTouching) {
+                        this.handleTouch(e.touches[0]);
+                        this.updateCustomCursor(e.touches[0]);
+                    }
+                },
+
+                handleTouchEnd(e) {
+                    this.isTouching = false;
+                    this.handleClick(e.changedTouches[0]);
+                    this.customCursor.style.display = 'none';
+                },
+
+                handleTouch(touch) {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const x = touch.clientX - rect.left;
+                    const y = touch.clientY - rect.top;
+
+                    // Update 3D effect
+                    this.mouseX = touch.clientX;
+                    this.mouseY = touch.clientY;
+                    this.update3DEffect();
+
+                    // Update custom cursor
+                    this.updateCustomCursor({
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                },
+
+                updateCustomCursor(event) {
+                    if (event) {
+                        const rect = this.canvas.getBoundingClientRect();
+                        const y = event.clientY - rect.top;
+                        this.customCursor.style.display = 'flex';
+                        this.customCursor.style.left = `${event.clientX - 54}px`;
+                        this.customCursor.style.top = `${event.clientY - 45}px`;
+                        this.customCursor.textContent = y < rect.height / 2 ? 'Recut' : 'Download';
+
+                        // ... rest of your custom cursor logic ...
+                    } else {
+                        this.customCursor.style.display = 'none';
+                    }
+                },
+
+                handleClick(event) {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const y = event.clientY - rect.top;
+                    
+                    if (y < rect.height / 2) {
+                        this.drawPoster(true);
+                    } else {
+                        this.downloadPoster();
+                    }
+                    
+                    this.updateCustomCursor(event);
+                    
+                    setTimeout(() => {
+                        this.previousBackgroundColor = this.currentColors.background;
+                        this.updateCustomCursor(event);
+                    }, 50);
+                },
+
+                // ... rest of your methods ...
+            };
+        })();
+    </script>
+</body>
+</html>
