@@ -91,7 +91,6 @@
             canvas.style.width = `${canvasWidth * scale}px`;
             canvas.style.height = `${canvasHeight * scale}px`;
 
-            // Add the getRandomDistortion function here
             function getRandomDistortion() {
                 return Math.random() * 10 - 5; // Random value between -5 and 5
             }
@@ -286,7 +285,6 @@
             const rectWidth = 15.3109 * 300;
             const spaceBetween = 0.46 * 300;
 
-            // Add the animateRectangles function here
             function animateRectangles(timestamp) {
                 if (!animationStart) animationStart = timestamp;
                 const progress = (timestamp - animationStart) / 500; // 500ms animation
@@ -451,6 +449,7 @@
             }
 
             function setupMobileVersion() {
+                is3DEnabled = false;
                 canvas.style.transform = 'none';
                 customCursor.style.display = 'none';
                 downloadButton.style.display = 'block';
